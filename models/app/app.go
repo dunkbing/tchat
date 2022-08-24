@@ -17,11 +17,10 @@ func (m Model) Init() tea.Cmd {
 }
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	channelModel, chCmd := m.channel.Update(msg)
-	chatModel, cCmd := m.chat.Update(msg)
+	channelModel, channelCmd := m.channel.Update(msg)
+	chatModel, chatCmd := m.chat.Update(msg)
 	m.channel = channelModel.(channel.Model)
 	m.chat = chatModel.(chat.Model)
-
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
@@ -29,6 +28,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.chatting {
 				m.chatting = false
 			}
+			return m, channelCmd
 		case tea.KeyEnter:
 			if !m.chatting {
 				m.chatting = true
@@ -40,9 +40,9 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	if m.chatting {
-		return m, tea.Batch(chCmd)
+		return m, tea.Batch(chatCmd)
 	}
-	return m, tea.Batch(cCmd)
+	return m, tea.Batch(channelCmd)
 }
 
 func (m Model) View() string {
