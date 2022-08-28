@@ -9,10 +9,14 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/dunkbing/tchat/redis"
 	"io"
+	"strings"
+	"time"
 )
 
 const listHeight = 14
-const channelPrefix = "channel"
+const channelPrefix = "channel:"
+const defaultChannel = "Default"
+const channelExpire = 60
 
 var (
 	titleStyle        = lipgloss.NewStyle().MarginLeft(2)
@@ -50,46 +54,56 @@ func (d itemDelegate) Render(w io.Writer, m list.Model, index int, listItem list
 }
 
 type Model struct {
-	list     list.Model
-	textarea textarea.Model
-	adding   bool
+	list            list.Model
+	textarea        textarea.Model
+	adding          bool
+	OnAddChannel    func(string)
+	OnChooseChannel func(string)
 }
 
-func (m Model) Init() tea.Cmd {
+func (m *Model) PreAddChannel() {
+	m.adding = true
+	m.textarea.Focus()
+}
+
+func (m *Model) AddChannel() {
+	newChan := m.textarea.Value()
+	if len(newChan) > 0 {
+		m.list.InsertItem(0, Item(newChan))
+		ctx := context.Background()
+		redis.Client.Set(ctx, fmt.Sprintf("%s%s", channelPrefix, newChan), newChan, time.Minute*channelExpire)
+	}
+	m.textarea.Reset()
+	if m.OnAddChannel != nil {
+		m.OnAddChannel(newChan)
+	}
+	m.PostAddChannel()
+}
+
+func (m *Model) PostAddChannel() {
+	m.textarea.Reset()
+	m.adding = false
+}
+
+func (m *Model) SelectedChannel() string {
+	return m.list.SelectedItem().FilterValue()
+}
+
+func (m *Model) Init() tea.Cmd {
 	//return textarea.Blink
 	return nil
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var listCmd tea.Cmd
 	var taCmd tea.Cmd
 	m.list, listCmd = m.list.Update(msg)
 	m.textarea, taCmd = m.textarea.Update(msg)
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		if msg.String() == "ctrl+c" {
-			return m, tea.Quit
-		}
-		switch msg.Type {
-		case tea.KeyEsc:
-			if m.list.FilterState() == list.Filtering {
-				return m, tea.Batch(listCmd, taCmd)
-			}
-			if m.adding {
-				m.adding = false
-				m.textarea.Reset()
-			}
-			return m, nil
-		case tea.KeyCtrlA:
-			m.adding = true
-			m.textarea.Focus()
-		}
-	}
 
 	return m, tea.Batch(listCmd, taCmd)
 }
 
-func (m Model) View() string {
+func (m *Model) View() string {
 	if !m.adding {
 		return m.list.View()
 	}
@@ -97,32 +111,24 @@ func (m Model) View() string {
 }
 
 func New() Model {
+	items := []list.Item{
+		Item(defaultChannel),
+	}
 	ctx := context.Background()
 	iter := redis.Client.Scan(ctx, 0, fmt.Sprintf("%s*", channelPrefix), 0).Iterator()
 	for iter.Next(ctx) {
-		fmt.Println("Keys", iter.Val())
+		channel := iter.Val()
+		channel = strings.Replace(channel, channelPrefix, "", 1)
+		items = append(items, Item(channel))
 	}
 	if err := iter.Err(); err != nil {
 		fmt.Println("err: ", err.Error())
-	}
-	//listKeys := newListKeyMap()
-	items := []list.Item{
-		Item("Ramen"),
-		Item("Tomato Soup"),
-		Item("Hamburgers"),
-		Item("Cheeseburgers"),
-		Item("Currywurst"),
-		Item("Okonomiyaki"),
-		Item("Pasta"),
-		Item("Fillet Mignon"),
-		Item("Caviar"),
-		Item("Just Wine"),
 	}
 
 	const defaultWidth = 20
 
 	l := list.New(items, itemDelegate{}, defaultWidth, listHeight)
-	l.Title = "What do you want for dinner?"
+	l.Title = "All chats"
 	l.SetShowStatusBar(false)
 	l.SetFilteringEnabled(true)
 	l.Styles.Title = titleStyle

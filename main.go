@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/dunkbing/tchat/models/app"
 	"github.com/dunkbing/tchat/redis"
 	"os"
-
-	tea "github.com/charmbracelet/bubbletea"
 )
 
 func main() {
 	//m := chat.New()
+	fmt.Println("Loading")
 	redis.Init()
 	m := app.New()
 

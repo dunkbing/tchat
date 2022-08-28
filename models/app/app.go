@@ -6,32 +6,59 @@ import (
 	"github.com/dunkbing/tchat/models/chat"
 )
 
+const (
+	BrowsingChannel  = "browsing-channel"
+	CreatingChannel  = "creating-channel"
+	FilteringChannel = "filtering-channel"
+	Chatting         = "chatting"
+)
+
 type Model struct {
-	channel  channel.Model
-	chat     chat.Model
-	chatting bool
+	channel *channel.Model
+	chat    *chat.Model
+	status  string
 }
 
-func (m Model) Init() tea.Cmd {
+func (m *Model) Init() tea.Cmd {
 	return nil
 }
 
-func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	channelModel, channelCmd := m.channel.Update(msg)
 	chatModel, chatCmd := m.chat.Update(msg)
-	m.channel = channelModel.(channel.Model)
-	m.chat = chatModel.(chat.Model)
+	m.channel = channelModel.(*channel.Model)
+	m.chat = chatModel.(*chat.Model)
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
+		case tea.KeyCtrlC:
+			return m, tea.Quit
+		case tea.KeyCtrlA:
+			m.channel.PreAddChannel()
+			m.status = CreatingChannel
 		case tea.KeyEsc:
-			if m.chatting {
-				m.chatting = false
+			if m.status == Chatting {
+				m.status = BrowsingChannel
 			}
-			return m, channelCmd
+			m.channel.PostAddChannel()
+			m.chat.Reset()
+			return m, nil
 		case tea.KeyEnter:
-			if !m.chatting {
-				m.chatting = true
+			if m.status == CreatingChannel {
+				m.status = BrowsingChannel
+				m.channel.AddChannel()
+				return m, channelCmd
+			}
+			if m.status == BrowsingChannel {
+				m.status = Chatting
+				m.chat.Reset()
+				m.chat.SetChannel(m.channel.SelectedChannel())
+				m.chat.LoadMessages()
+				return m, chatCmd
+			}
+			if m.status == Chatting {
+				m.chat.SendMessage()
+				return m, chatCmd
 			}
 		}
 
@@ -39,14 +66,14 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if m.chatting {
+	if m.status == Chatting {
 		return m, tea.Batch(chatCmd)
 	}
 	return m, tea.Batch(channelCmd)
 }
 
-func (m Model) View() string {
-	if m.chatting {
+func (m *Model) View() string {
+	if m.status == Chatting {
 		return m.chat.View()
 	}
 	return m.channel.View()
@@ -54,11 +81,20 @@ func (m Model) View() string {
 
 func New() tea.Model {
 	channelModel := channel.New()
+
 	chatModel := chat.New()
-	model := Model{
-		channel:  channelModel,
-		chat:     chatModel,
-		chatting: false,
+	model := &Model{
+		channel: &channelModel,
+		chat:    &chatModel,
+		status:  BrowsingChannel,
+	}
+	channelModel.OnAddChannel = func(s string) {
+		model.status = BrowsingChannel
+	}
+	channelModel.OnChooseChannel = func(s string) {
+		if model.status == BrowsingChannel {
+			model.status = Chatting
+		}
 	}
 	return model
 }
