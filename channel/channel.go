@@ -136,6 +136,14 @@ func New() Model {
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
 
+	l.AdditionalFullHelpKeys = func() []key.Binding {
+		return []key.Binding{
+			key.NewBinding(
+				key.WithKeys("ctrl+a"),
+				key.WithHelp("ctrl+a", "create a new channel"),
+			),
+		}
+	}
 	l.KeyMap = list.KeyMap{
 		CursorUp: key.NewBinding(
 			key.WithKeys("up"),
@@ -144,12 +152,6 @@ func New() Model {
 		CursorDown: key.NewBinding(
 			key.WithKeys("down"),
 			key.WithHelp("↓", "down"),
-		),
-		PrevPage: key.NewBinding(
-			key.WithKeys("left"),
-		),
-		NextPage: key.NewBinding(
-			key.WithKeys("right"),
 		),
 		Filter: key.NewBinding(
 			key.WithKeys("/"),
@@ -162,6 +164,7 @@ func New() Model {
 		Quit: key.NewBinding(
 			key.WithKeys("ctrl+c"),
 			key.WithHelp("ctrl+c", "quit"),
+			key.WithHelp("ctrl+a", "create a new channel"),
 		),
 		ForceQuit: key.NewBinding(key.WithKeys("ctrl+c")),
 	}

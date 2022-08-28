@@ -15,7 +15,6 @@ func main() {
 	if err != nil {
 		log.Fatalln("Error loading .env file")
 	}
-	fmt.Println("Loading")
 	redis.Init()
 	m := app.New()
 
