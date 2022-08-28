@@ -33,6 +33,8 @@ type Model struct {
 
 	channel string
 	sender  string
+
+	stopped bool
 }
 
 func formatMessage(msg Message, style lipgloss.Style) string {
@@ -41,6 +43,10 @@ func formatMessage(msg Message, style lipgloss.Style) string {
 
 func (m *Model) Init() tea.Cmd {
 	return textarea.Blink
+}
+
+func (m *Model) Stop() {
+	m.stopped = true
 }
 
 func (m *Model) SetChannel(c string) {
@@ -102,6 +108,27 @@ func (m *Model) SendMessage() {
 		"",
 		time.Minute*messageExpire,
 	)
+	redis.Client.Publish(ctx, m.channel, jsonStr)
+}
+
+func (m *Model) ReceiveMessages() {
+	m.stopped = false
+	ctx := context.Background()
+	pubSub := redis.Client.Subscribe(ctx, m.channel)
+	defer pubSub.Close()
+
+	ch := pubSub.Channel()
+	for msg := range ch {
+		if m.stopped {
+			break
+		}
+		message := Message{}
+		_ = json.Unmarshal([]byte(msg.Payload), &message)
+		if message.Sender != m.sender {
+			m.messages = append(m.messages, formatMessage(message, m.senderStyle))
+			m.viewport.SetContent(strings.Join(m.messages, "\n"))
+		}
+	}
 }
 
 func (m *Model) Reset() {

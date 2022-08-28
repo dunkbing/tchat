@@ -32,6 +32,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyCtrlC:
+			m.chat.Stop()
 			return m, tea.Quit
 		case tea.KeyCtrlA:
 			m.channel.PreAddChannel()
@@ -39,6 +40,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case tea.KeyEsc:
 			if m.status == Chatting {
 				m.status = BrowsingChannel
+				m.chat.Stop()
 			}
 			m.channel.PostAddChannel()
 			m.chat.Reset()
@@ -54,6 +56,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.chat.Reset()
 				m.chat.SetChannel(m.channel.SelectedChannel())
 				m.chat.LoadMessages()
+				go m.chat.ReceiveMessages()
 				return m, chatCmd
 			}
 			if m.status == Chatting {
@@ -79,6 +82,10 @@ func (m *Model) View() string {
 	return m.channel.View()
 }
 
+func (m *Model) StartReceivingMsg() {
+	m.chat.ReceiveMessages()
+}
+
 func New() tea.Model {
 	channelModel := channel.New()
 
@@ -96,5 +103,6 @@ func New() tea.Model {
 			model.status = Chatting
 		}
 	}
+	//chatModel.ReceiveMessages()
 	return model
 }

@@ -3,6 +3,7 @@ package channel
 import (
 	"context"
 	"fmt"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/list"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
@@ -135,36 +136,35 @@ func New() Model {
 	l.Styles.PaginationStyle = paginationStyle
 	l.Styles.HelpStyle = helpStyle
 
-	//l.AdditionalFullHelpKeys = func() []key.Binding {
-	//    return []key.Binding{
-	//        listKeys.toggleSpinner,
-	//        listKeys.insertItem,
-	//        listKeys.toggleTitleBar,
-	//        listKeys.toggleStatusBar,
-	//        listKeys.togglePagination,
-	//        listKeys.toggleHelpMenu,
-	//    }
-	//}
-	//l.KeyMap = list.KeyMap{
-	//    CursorUp: key.NewBinding(
-	//        key.WithKeys("up"),
-	//        key.WithHelp("↑", "up"),
-	//    ),
-	//    CursorDown: key.NewBinding(
-	//        key.WithKeys("down"),
-	//        key.WithHelp("↓", "down"),
-	//    ),
-	//    PrevPage: key.NewBinding(
-	//        key.WithKeys("left"),
-	//    ),
-	//    NextPage: key.NewBinding(
-	//        key.WithKeys("right"),
-	//    ),
-	//    Quit: key.NewBinding(
-	//        key.WithKeys("ctrl+c"),
-	//    ),
-	//    ForceQuit: key.NewBinding(key.WithKeys("ctrl+c")),
-	//}
+	l.KeyMap = list.KeyMap{
+		CursorUp: key.NewBinding(
+			key.WithKeys("up"),
+			key.WithHelp("↑", "up"),
+		),
+		CursorDown: key.NewBinding(
+			key.WithKeys("down"),
+			key.WithHelp("↓", "down"),
+		),
+		PrevPage: key.NewBinding(
+			key.WithKeys("left"),
+		),
+		NextPage: key.NewBinding(
+			key.WithKeys("right"),
+		),
+		Filter: key.NewBinding(
+			key.WithKeys("/"),
+			key.WithHelp("/", "filter"),
+		),
+		CancelWhileFiltering: key.NewBinding(
+			key.WithKeys("esc"),
+			key.WithHelp("esc", "cancel"),
+		),
+		Quit: key.NewBinding(
+			key.WithKeys("ctrl+c"),
+			key.WithHelp("ctrl+c", "quit"),
+		),
+		ForceQuit: key.NewBinding(key.WithKeys("ctrl+c")),
+	}
 
 	ta := textarea.New()
 	ta.Placeholder = "Create a channel..."
