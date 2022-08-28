@@ -2,8 +2,8 @@ package app
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/dunkbing/tchat/models/channel"
-	"github.com/dunkbing/tchat/models/chat"
+	"github.com/dunkbing/tchat/channel"
+	"github.com/dunkbing/tchat/chat"
 )
 
 const (

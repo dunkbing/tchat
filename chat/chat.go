@@ -78,7 +78,7 @@ func (m *Model) SendMessage() {
 		m.messages,
 		formatMessage(Message{
 			Message:   message,
-			Sender:    m.sender,
+			Sender:    "You",
 			CreatedAt: createdAt,
 		}, m.senderStyle),
 	)
